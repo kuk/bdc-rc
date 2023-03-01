@@ -35,6 +35,7 @@ from neludim.const import (
     CONFIRM_ACTION,
     MATCH_ACTION,
 )
+from neludim.welcome import WELCOME
 from neludim.text import (
     EMPTY_SYMBOL,
     user_mention,
@@ -96,6 +97,7 @@ async def handle_start(context, message):
             username=message.from_user.username,
             created=context.schedule.now(),
             name=message.from_user.full_name,
+            about=WELCOME.get(message.from_user.id),
         )
         await context.db.put_user(user)
 
