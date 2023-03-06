@@ -6,6 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
+from aiogram.utils import exceptions
 
 from neludim.const import (
     ADMIN_USER_ID,
@@ -271,7 +272,7 @@ async def handle_edit_about(context, query):
 
 
 def warn_city_text(city, cities=CITIES):
-    return f'''⚠ Не нашел город "{city}" базе участников. Бот сравнивает названия посимвольно.
+    return f'''⚠ Не нашел город "{city}" в базе участников. Бот сравнивает названия посимвольно.
 
 Города из базы участников: {", ".join(cities)}.
 
@@ -316,9 +317,17 @@ async def handle_edit_input(context, message):
 ###
 
 
+async def safe_delete(message):
+    try:
+        await message.delete()
+    except exceptions.MessageToDeleteNotFound:
+        # Pressed CANCEL_EDIT_DATA twice for example
+        pass
+
+
 async def handle_cancel_edit(context, query):
     await query.answer()
-    await query.message.delete()
+    await safe_delete(query.message)
     await context.db.reset_chat_state(query.message.chat.id)
 
 
@@ -351,7 +360,7 @@ def no_username_markup(week_index):
     )
 
 
-NO_ABOUT_TEXT = '''Пожалуйста, заполни "О себе" или "Ссылки" в анкете.
+NO_ABOUT_TEXT = '''⚠ Пожалуйста, заполни "О себе" или "Ссылки" в анкете.
 
 - Собеседник поймёт чем ты занимаешься, о чём интересно спросить.
 - Алгоритм сначала метчит участников с заполненными анкетами. С пустой анкетой выше вероятность остаться без собеседника.'''
@@ -548,7 +557,7 @@ async def handle_review_profile(context, query):
         user = await context.db.get_user(data.user_id)
         user.confirmed_profile = context.schedule.now()
         await context.db.put_user(user)
-        await query.message.delete()
+        await safe_delete(query.message)
 
     elif data.action == MATCH_ACTION:
         match = Match(ADMIN_USER_ID, data.user_id)
